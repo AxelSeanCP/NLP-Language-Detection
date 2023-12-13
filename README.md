@@ -1,8 +1,12 @@
 # NLP-TensorFlow
-Natural Language Processing project using TensorFlow from dicoding Machine Learning course
+Natural Language Processing project for human stress prediction using TensorFlow from dicoding Machine Learning Intermediate Class. 
+
+## Dataset
+- source: https://www.kaggle.com/datasets/kreeshrajani/human-stress-prediction
+- about: this dataset is filled with users tweet in some subreddit's and then its labeled 0 if the user is not stressed and labeled 1 if the user is stressed
 
 ## Criteria
-- free dataset but 1000 sample minimum
+- dataset with 1000 minimum sample
 - implement LSTM
 - use model Sequential
 - validation set is 20%
