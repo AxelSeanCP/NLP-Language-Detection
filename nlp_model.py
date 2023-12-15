@@ -90,18 +90,18 @@ class SantaiDuluGakSih(tf.keras.callbacks.Callback):
     self.sabar_loss = 0
 
   def on_epoch_end(self, epoch, logs={}):
-    if logs.get('accuracy')<0.75 or logs.get('val_accuracy')<0.75:
+    if logs.get('accuracy')>0.9 and logs.get('val_accuracy')>0.9:
       self.sabar_acc += 1
     else:
       self.sabar_acc = 0
 
-    if logs.get('loss')>0.75 or logs.get('val_loss')>0.75:
+    """if logs.get('loss')>0.75 or logs.get('val_loss')>0.75:
       self.sabar_loss += 1
     else:
-      self.sabar_loss = 0
+      self.sabar_loss = 0"""
 
     if self.sabar_acc >= self.sabar:
-      print(f"The model accuracy has been below 75% for {self.sabar_acc} epochs, Stopping training immediatly!!!")
+      print(f"The model accuracy has been above 90% for {self.sabar_acc} epochs, Stopping training immediatly!!!")
       self.model.stop_training = True
     elif self.sabar_loss >= self.sabar:
       print(f"The model loss has been above 75% for {self.sabar_loss} epochs, Stopping training immediatly!!!")
@@ -111,12 +111,12 @@ class SantaiDuluGakSih(tf.keras.callbacks.Callback):
 
 model = tf.keras.models.Sequential([
     tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=300, input_length=70),
-    tf.keras.layers.LSTM(64),
-    tf.keras.layers.Dense(256, activation="relu"),
-    tf.keras.layers.Dense(128, activation="relu"),
-    tf.keras.layers.Dense(64, activation="relu"),
-    tf.keras.layers.Dense(16, activation="relu"),
-    tf.keras.layers.Dropout(0.4),
+    tf.keras.layers.LSTM(32),
+    #tf.keras.layers.Dense(256, activation="relu"),
+    #tf.keras.layers.Dense(128, activation="relu"),
+    #tf.keras.layers.Dense(64, activation="relu"),
+    tf.keras.layers.Dense(32, activation="relu"),
+    tf.keras.layers.Dropout(0.5),
     tf.keras.layers.Dense(17, activation="softmax")
 ])
 
@@ -126,7 +126,7 @@ model.compile(
     metrics=['accuracy']
 )
 
-stop_early = SantaiDuluGakSih(sabar=25)
+stop_early = SantaiDuluGakSih(sabar=10)
 modelku = model.fit(
     padded_latih,
     label_latih,
@@ -144,6 +144,8 @@ modelku = model.fit(
 
 ```
 "i am not in danger skyler i am the danger, a guy open his door and get shot, you think that of me? no i am the one who knocks"
+"non sono in pericolo Skyler, sono il pericolo, un ragazzo apre la porta e viene colpito, pensi questo di me? no, sono io quello che bussa"
+"للعربيةللعربيةمقالاتترجمةويكيبيدياانظر"
 print(input_text)
 print(sekuens_input, "\n")
 print(padded_input, "\n")
@@ -172,16 +174,18 @@ print(f"The language of this text is {hasil_prediksi}")
 
 # plot loss
 plt.plot(modelku.history['loss'])
+plt.plot(modelku.history['val_loss'])
 plt.title('Model loss')
 plt.ylabel('Loss')
 plt.xlabel('Epoch')
-plt.legend(['Train'], loc='upper right')
+plt.legend(['Train', 'Validation'], loc='upper right')
 plt.show()
 
 # plot acc
 plt.plot(modelku.history['accuracy'])
+plt.plot(modelku.history['val_accuracy'])
 plt.title('Model accuracy')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
-plt.legend(['Train'], loc='upper right')
+plt.legend(['Train', 'Validation'], loc='upper right')
 plt.show()
