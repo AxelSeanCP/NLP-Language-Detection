@@ -20,6 +20,9 @@ Natural Language Processing project for language prediction using TensorFlow fro
 ### Optional Criteria
 - dataset has 3 minimum class
 - accuracy and validation accuracy is above 90%
-  
+
+## Preview Model
+![image](https://github.com/AxelSeanCP/NLP-TensorFlow/assets/104364854/01e9cf9c-a0af-496e-b4a0-bb16225d4e34)
+![image](https://github.com/AxelSeanCP/NLP-TensorFlow/assets/104364854/c838d0ee-bae2-439d-803b-f04ce26128c1)
 
 > note: the project file has been ran before so all you need is to look at it or run it yourself by pressing ctrl + f9
