@@ -17,13 +17,34 @@ from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.regularizers import l2
 
 nltk.download('punkt')
 
-"""# Load dataset"""
+"""# Load dataset
+- dataset link: https://www.kaggle.com/datasets/basilb2s/language-detection/data
+"""
 
 df = pd.read_csv('Language Detection.csv')
 df.head(10)
+
+"""# Edit dataset
+- change dataset from 10267 text with 17 languages into 4000 text with 5 language
+- the reason for this is that i've wasted 8 hours tuning parameters and my model still wont do well so my last resort is this
+"""
+
+target_language = ['English','German','French','Dutch','Italian']
+df = df[df['Language'].isin(target_language)]
+df.head()
+
+jumlah = len(df['Text'])
+print(f'Samples: {jumlah}')
+
+jumlah_class = df['Language'].nunique()
+print(f'jumlah class yang unik: {jumlah_class}')
+
+distribusi_class = df['Language'].value_counts()
+print(f'Distribusi kelas: \n{distribusi_class}')
 
 """# Data cleaning
 
@@ -50,12 +71,11 @@ df_baru = df_baru.drop(columns=['Language'])
 print(df_baru)
 
 """# Split dataset
-in this dataset there is a column named text and 17 other columns with language names
+in this dataset there is a column named text and 5 other columns with language names
 """
 
 kalimat = df_baru['Text'].values
-label = df_baru[['Arabic', 'Danish', 'Dutch', 'English', 'French', 'German', 'Greek', 'Hindi', 'Italian', 'Kannada', 'Malayalam', 'Portugeese',
-                 'Russian', 'Spanish', 'Sweedish', 'Tamil', 'Turkish']].values
+label = df_baru[['English','German','French','Dutch','Italian']].values
 
 """# Split data into train and test
 
@@ -66,15 +86,15 @@ kalimat_latih, kalimat_test, label_latih, label_test = train_test_split(kalimat,
 
 """# Tokenization"""
 
-vocab_size = 50000
+vocab_size = 14000
 tokenizer = Tokenizer(num_words=vocab_size, oov_token='x')
 tokenizer.fit_on_texts(kalimat_latih)
 
 sekuens_latih = tokenizer.texts_to_sequences(kalimat_latih)
 sekuens_test = tokenizer.texts_to_sequences(kalimat_test)
 
-padded_latih = pad_sequences(sekuens_latih, maxlen=70, padding='post')
-padded_test = pad_sequences(sekuens_test, maxlen=70, padding='post')
+padded_latih = pad_sequences(sekuens_latih, maxlen=20, padding='post')
+padded_test = pad_sequences(sekuens_test, maxlen=20, padding='post')
 
 print(f"Kalimat latih: {kalimat_latih} \n")
 print(f"Sekuens latih: {sekuens_latih} \n")
@@ -83,42 +103,42 @@ print(f"Padded latih: {padded_latih} \n")
 """# Callback function"""
 
 class SantaiDuluGakSih(tf.keras.callbacks.Callback):
-  def __init__(self, sabar=5):
+  def __init__(self, sabar_acc=10, sabar_loss=10):
     super(SantaiDuluGakSih, self).__init__()
-    self.sabar = sabar
-    self.sabar_acc = 0
-    self.sabar_loss = 0
+    self.sabar_acc = sabar_acc
+    self.sabar_loss = sabar_loss
+    self.limit_acc = sabar_acc
+    self.limit_loss = sabar_loss
 
   def on_epoch_end(self, epoch, logs={}):
     if logs.get('accuracy')>0.9 and logs.get('val_accuracy')>0.9:
+      self.sabar_acc -= 1
+    else:
       self.sabar_acc += 1
-    else:
-      self.sabar_acc = 0
 
-    """if logs.get('loss')>0.75 or logs.get('val_loss')>0.75:
+    if logs.get('loss')>0.75 or logs.get('val_loss')>0.75:
+      self.sabar_loss -= 1
+    else:
       self.sabar_loss += 1
-    else:
-      self.sabar_loss = 0"""
 
-    if self.sabar_acc >= self.sabar:
-      print(f"The model accuracy has been above 90% for {self.sabar_acc} epochs, Stopping training immediatly!!!")
+    if self.sabar_acc == 0:
+      print(f"The model accuracy has been above 90% for {self.limit_acc} epochs, Stopping training immediatly!!!")
       self.model.stop_training = True
-    elif self.sabar_loss >= self.sabar:
-      print(f"The model loss has been above 75% for {self.sabar_loss} epochs, Stopping training immediatly!!!")
+    elif self.sabar_loss == 0:
+      print(f"The model loss has been above 75% for {self.limit_loss} epochs, Stopping training immediatly!!!")
       self.model.stop_training = True
 
 """# Model creation"""
 
 model = tf.keras.models.Sequential([
-    tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=300, input_length=70),
-    tf.keras.layers.LSTM(32),
-    #tf.keras.layers.Dense(256, activation="relu"),
-    #tf.keras.layers.Dense(128, activation="relu"),
-    #tf.keras.layers.Dense(64, activation="relu"),
+    tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=16, input_length=20),
+    tf.keras.layers.LSTM(64),
+    tf.keras.layers.Dense(64, activation="relu", kernel_regularizer=l2(0.01)),
     tf.keras.layers.Dense(32, activation="relu"),
     tf.keras.layers.Dropout(0.5),
-    tf.keras.layers.Dense(17, activation="softmax")
+    tf.keras.layers.Dense(5, activation="softmax")
 ])
+model.summary()
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
@@ -126,12 +146,12 @@ model.compile(
     metrics=['accuracy']
 )
 
-stop_early = SantaiDuluGakSih(sabar=10)
+stop_early = SantaiDuluGakSih(sabar_acc=1, sabar_loss=10)
 modelku = model.fit(
     padded_latih,
     label_latih,
-    epochs=50,
-    batch_size=8,
+    epochs=20,
+    batch_size=32,
     validation_data=(padded_test, label_test),
     callbacks=[stop_early],
     verbose=2
@@ -143,9 +163,17 @@ modelku = model.fit(
 
 
 ```
+#english
 "i am not in danger skyler i am the danger, a guy open his door and get shot, you think that of me? no i am the one who knocks"
+#italian
 "non sono in pericolo Skyler, sono il pericolo, un ragazzo apre la porta e viene colpito, pensi questo di me? no, sono io quello che bussa"
-"للعربيةللعربيةمقالاتترجمةويكيبيدياانظر"
+#dutch
+"ik ben niet in gevaar Skyler ik ben het gevaar, een man doet zijn deur open en wordt neergeschoten, denk je dat van mij? Nee, ik ben degene die klopt"
+#german
+"Ich bin nicht in Gefahr, Skyler, ich bin die Gefahr, ein Typ öffnet seine Tür und wird erschossen, denkst du das von mir? Nein, ich bin derjenige, der klopft"
+#france
+"je ne suis pas en danger Skyler je suis le danger, un mec ouvre sa porte et se fait tirer dessus, tu penses ça de moi ? non, c'est moi qui frappe"
+
 print(input_text)
 print(sekuens_input, "\n")
 print(padded_input, "\n")
@@ -158,13 +186,12 @@ print(len(prediksi), index_prediksi, len(label_prediksi))
 input_text = input("Input your text here: ")
 
 sekuens_input = tokenizer.texts_to_sequences([input_text])
-padded_input = pad_sequences(sekuens_input, maxlen=70, padding='post')
+padded_input = pad_sequences(sekuens_input, maxlen=20, padding='post')
 
 import numpy as np
 prediksi = model.predict(padded_input)
 index_prediksi = np.argmax(prediksi)
-label_prediksi = ['Arabic', 'Danish', 'Dutch', 'English', 'French', 'German', 'Greek', 'Hindi', 'Italian', 'Kannada', 'Malayalam', 'Portugeese',
-                 'Russian', 'Spanish', 'Sweedish', 'Tamil', 'Turkish']
+label_prediksi = ['English','German','French','Dutch','Italian']
 
 hasil_prediksi = label_prediksi[index_prediksi]
 
@@ -187,5 +214,5 @@ plt.plot(modelku.history['val_accuracy'])
 plt.title('Model accuracy')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
-plt.legend(['Train', 'Validation'], loc='upper right')
+plt.legend(['Train', 'Validation'], loc='lower right')
 plt.show()
