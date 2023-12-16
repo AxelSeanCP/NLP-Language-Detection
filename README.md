@@ -1,4 +1,4 @@
-# NLP-TensorFlow
+# NLP-Language-Detection
 Natural Language Processing project for language prediction using TensorFlow from dicoding Machine Learning Intermediate Class. 
 
 ## Dataset
